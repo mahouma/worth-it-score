@@ -18,8 +18,9 @@ export default function Home() {
 
     try {
       const res = await fetch(
-        `https://www.balldontlie.io/api/v1/games?dates[]=${selectedDate}&per_page=100`
-      );
+  `https://api.balldontlie.io/nba/v1/games?dates[]=${selectedDate}&per_page=100`,
+  { headers: { Authorization: "4403bc58-fd16-4b09-acd4-f55949e98591" } }
+);
       if (!res.ok) throw new Error("Failed to fetch games.");
       const data = await res.json();
       setGames(data.data);

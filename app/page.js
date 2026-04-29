@@ -1,6 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { DM_Mono, Bebas_Neue } from "next/font/google";
+
+const dmMono = DM_Mono({ subsets: ["latin"], weight: ["300", "400", "500"] });
+const bebasNeue = Bebas_Neue({ subsets: ["latin"], weight: "400" });
 
 export default function Home() {
   const [date, setDate] = useState("");
@@ -15,17 +20,16 @@ export default function Home() {
     setError("");
     setGames([]);
     setSearched(true);
-
     try {
       const res = await fetch(
-  `https://api.balldontlie.io/nba/v1/games?dates[]=${selectedDate}&per_page=100`,
-  { headers: { Authorization: "4403bc58-fd16-4b09-acd4-f55949e98591" } }
-);
-      if (!res.ok) throw new Error("Failed to fetch games.");
+        `https://api.balldontlie.io/nba/v1/games?dates[]=${selectedDate}&per_page=100`,
+        { headers: { Authorization: process.env.NEXT_PUBLIC_BALLDONTLIE_API_KEY } }
+      );
+      if (!res.ok) throw new Error();
       const data = await res.json();
       setGames(data.data);
-    } catch (err) {
-      setError("Couldn't load games. Check your connection and try again.");
+    } catch {
+      setError("Couldn't load games.");
     } finally {
       setLoading(false);
     }
@@ -37,208 +41,178 @@ export default function Home() {
     fetchGames(val);
   }
 
-  function getResult(game) {
-    const { home_team_score: h, visitor_team_score: v } = game;
-    if (!h && !v) return "scheduled";
-    return h > v ? "home" : v > h ? "visitor" : "tie";
-  }
-
   const today = new Date().toISOString().split("T")[0];
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f] text-white font-mono">
-      {/* Grain overlay */}
-      <div
-        className="pointer-events-none fixed inset-0 z-0 opacity-[0.03]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-          backgroundRepeat: "repeat",
-          backgroundSize: "128px 128px",
-        }}
-      />
+    <main
+      className={dmMono.className}
+      style={{ minHeight: "100vh", background: "#080808", color: "#f0ede8" }}
+    >
+      {/* Scanline texture */}
+      <div style={{
+        pointerEvents: "none",
+        position: "fixed",
+        inset: 0,
+        zIndex: 0,
+        backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 4px)",
+      }} />
 
-      <div className="relative z-10 mx-auto max-w-2xl px-6 py-16">
+      <div style={{ position: "relative", zIndex: 1, maxWidth: 640, margin: "0 auto", padding: "72px 24px 96px" }}>
+
         {/* Header */}
-        <div className="mb-14">
-          <p className="text-[10px] tracking-[0.3em] text-orange-500 uppercase mb-3">
-            NBA · Game Log
+        <header style={{ marginBottom: 72 }}>
+          <p style={{ fontSize: 10, letterSpacing: "0.3em", color: "#e85a1a", textTransform: "uppercase", marginBottom: 16 }}>
+            NBA · {new Date().getFullYear()} Season
           </p>
-          <h1 className="text-5xl font-black tracking-tight leading-none mb-4">
-            WORTH
-            <span className="text-orange-500">-IT</span>
-            <br />
-            SCORE
+          <h1
+            className={bebasNeue.className}
+            style={{ fontSize: "clamp(72px, 14vw, 108px)", lineHeight: 0.9, letterSpacing: "0.02em", color: "#f0ede8", marginBottom: 24 }}
+          >
+            Worth-It<br />
+            <span style={{ color: "#e85a1a" }}>Score</span>
           </h1>
-          <p className="text-zinc-500 text-sm leading-relaxed max-w-xs">
-            Pick a date. See every game. Find out if it was worth watching.
+          <p style={{ fontSize: 12, color: "#5a5a5a", lineHeight: 1.8, maxWidth: 260 }}>
+            Pick a date. Every game.<br />Find out if it deserved your time.
           </p>
-        </div>
+        </header>
 
-        {/* Date Input */}
-        <div className="mb-12">
-          <label className="block text-[10px] tracking-[0.25em] text-zinc-500 uppercase mb-2">
+        {/* Date input */}
+        <div style={{ marginBottom: 56 }}>
+          <label style={{ display: "block", fontSize: 9, letterSpacing: "0.3em", textTransform: "uppercase", color: "#5a5a5a", marginBottom: 10 }}>
             Select Date
           </label>
-          <div className="relative inline-block">
-            <input
-              type="date"
-              value={date}
-              max={today}
-              onChange={handleDateChange}
-              className="
-                bg-zinc-900 border border-zinc-700 text-white
-                px-4 py-3 pr-4 rounded-none text-sm
-                focus:outline-none focus:border-orange-500
-                transition-colors duration-200
-                cursor-pointer
-                [color-scheme:dark]
-              "
-            />
-            <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-orange-500 transition-all duration-300 peer-focus:w-full" />
-          </div>
+          <input
+            type="date"
+            value={date}
+            max={today}
+            onChange={handleDateChange}
+            style={{
+              background: "#111111",
+              border: "1px solid #1e1e1e",
+              color: "#f0ede8",
+              padding: "12px 16px",
+              fontSize: 13,
+              outline: "none",
+              fontFamily: "inherit",
+              colorScheme: "dark",
+              cursor: "pointer",
+            }}
+            onFocus={e => e.target.style.borderColor = "#e85a1a"}
+            onBlur={e => e.target.style.borderColor = "#1e1e1e"}
+          />
         </div>
 
-        {/* States */}
+        {/* Loading */}
         {loading && (
-          <div className="flex items-center gap-3 text-zinc-400 text-sm py-8">
-            <span className="inline-block w-4 h-4 border border-orange-500 border-t-transparent rounded-full animate-spin" />
+          <div style={{ display: "flex", alignItems: "center", gap: 12, color: "#5a5a5a", fontSize: 12, padding: "32px 0" }}>
+            <span style={{
+              display: "inline-block", width: 14, height: 14,
+              border: "1px solid #e85a1a", borderTopColor: "transparent",
+              borderRadius: "50%", animation: "spin 0.8s linear infinite",
+            }} />
             Fetching games…
           </div>
         )}
 
+        {/* Error */}
         {error && (
-          <div className="border border-red-900 bg-red-950/40 px-4 py-3 text-red-400 text-sm mb-8">
+          <div style={{ border: "1px solid #7a2e0a", background: "rgba(122,46,10,0.15)", padding: "12px 16px", fontSize: 12, color: "#e85a1a", marginBottom: 32 }}>
             {error}
           </div>
         )}
 
+        {/* Empty */}
         {!loading && searched && games.length === 0 && !error && (
-          <div className="py-8 text-zinc-500 text-sm">
-            No games found for this date.
-          </div>
+          <p style={{ color: "#5a5a5a", fontSize: 12, padding: "32px 0" }}>No games on this date.</p>
         )}
 
-        {/* Game Cards */}
+        {/* Games */}
         {!loading && games.length > 0 && (
-          <div className="space-y-3">
-            <p className="text-[10px] tracking-[0.25em] text-zinc-500 uppercase mb-4">
-              {games.length} game{games.length !== 1 ? "s" : ""} found
+          <div>
+            <p style={{ fontSize: 9, letterSpacing: "0.3em", textTransform: "uppercase", color: "#2e2e2e", marginBottom: 20 }}>
+              {games.length} game{games.length !== 1 ? "s" : ""}
             </p>
 
-            {games.map((game) => {
-              const result = getResult(game);
-              const hasScore = result !== "scheduled";
-              const homeWon = result === "home";
-              const visitorWon = result === "visitor";
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {games.map((game) => {
+                const h = game.home_team_score;
+                const v = game.visitor_team_score;
+                const hasScore = h > 0 || v > 0;
+                const homeWon = hasScore && h > v;
+                const visitorWon = hasScore && v > h;
 
-              return (
-                <div
-                  key={game.id}
-                  className="
-                    group border border-zinc-800 bg-zinc-900/60
-                    hover:border-zinc-600 hover:bg-zinc-900
-                    transition-all duration-200
-                    px-5 py-4
-                  "
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    {/* Visitor */}
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={`text-[10px] tracking-widest uppercase mb-1 ${
-                          visitorWon ? "text-orange-500" : "text-zinc-500"
-                        }`}
-                      >
-                        {game.visitor_team.abbreviation}
-                      </p>
-                      <p
-                        className={`text-sm truncate ${
-                          visitorWon ? "text-white font-semibold" : "text-zinc-400"
-                        }`}
-                      >
-                        {game.visitor_team.full_name}
-                      </p>
-                    </div>
+                return (
+                  <Link key={game.id} href={`/games/${game.id}`} style={{ textDecoration: "none" }}>
+                    <div
+                      style={{ background: "#111111", border: "1px solid #1e1e1e", padding: "20px 24px", cursor: "pointer", transition: "border-color 0.15s" }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = "#2e2e2e"}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = "#1e1e1e"}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
 
-                    {/* Score / VS */}
-                    <div className="flex-shrink-0 text-center min-w-[80px]">
-                      {hasScore ? (
-                        <div className="flex items-baseline justify-center gap-2">
-                          <span
-                            className={`text-xl font-black tabular-nums ${
-                              visitorWon ? "text-orange-400" : "text-zinc-300"
-                            }`}
-                          >
-                            {game.visitor_team_score}
-                          </span>
-                          <span className="text-zinc-700 text-xs">—</span>
-                          <span
-                            className={`text-xl font-black tabular-nums ${
-                              homeWon ? "text-orange-400" : "text-zinc-300"
-                            }`}
-                          >
-                            {game.home_team_score}
-                          </span>
+                        {/* Visitor */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 9, letterSpacing: "0.25em", textTransform: "uppercase", color: visitorWon ? "#e85a1a" : "#2e2e2e", marginBottom: 4 }}>
+                            {game.visitor_team.abbreviation}
+                          </p>
+                          <p style={{ fontSize: 13, color: visitorWon ? "#f0ede8" : "#5a5a5a", fontWeight: visitorWon ? 500 : 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {game.visitor_team.full_name}
+                          </p>
                         </div>
-                      ) : (
-                        <span className="text-xs tracking-widest text-zinc-600 uppercase">
-                          vs
+
+                        {/* Score */}
+                        <div style={{ flexShrink: 0, textAlign: "center", minWidth: 90 }}>
+                          {hasScore ? (
+                            <>
+                              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 8 }}>
+                                <span className={bebasNeue.className} style={{ fontSize: 32, color: visitorWon ? "#f0ede8" : "#2e2e2e", lineHeight: 1 }}>{v}</span>
+                                <span style={{ fontSize: 11, color: "#1e1e1e" }}>–</span>
+                                <span className={bebasNeue.className} style={{ fontSize: 32, color: homeWon ? "#f0ede8" : "#2e2e2e", lineHeight: 1 }}>{h}</span>
+                              </div>
+                              <p style={{ fontSize: 8, letterSpacing: "0.2em", textTransform: "uppercase", color: "#2e2e2e", marginTop: 2 }}>Final</p>
+                            </>
+                          ) : (
+                            <span style={{ fontSize: 10, letterSpacing: "0.15em", color: "#2e2e2e", textTransform: "uppercase" }}>vs</span>
+                          )}
+                        </div>
+
+                        {/* Home */}
+                        <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
+                          <p style={{ fontSize: 9, letterSpacing: "0.25em", textTransform: "uppercase", color: homeWon ? "#e85a1a" : "#2e2e2e", marginBottom: 4 }}>
+                            {game.home_team.abbreviation}
+                          </p>
+                          <p style={{ fontSize: 13, color: homeWon ? "#f0ede8" : "#5a5a5a", fontWeight: homeWon ? 500 : 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {game.home_team.full_name}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Bottom row */}
+                      <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #161616", display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: "#2e2e2e" }}>
+                          {game.status === "Final" ? "✓ Final" : game.status || "Scheduled"}
                         </span>
-                      )}
-                      {hasScore && (
-                        <p className="text-[9px] tracking-widest text-zinc-600 uppercase mt-1">
-                          final
-                        </p>
-                      )}
+                        <span style={{ fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", color: "#2e2e2e" }}>Details →</span>
+                      </div>
                     </div>
-
-                    {/* Home */}
-                    <div className="flex-1 min-w-0 text-right">
-                      <p
-                        className={`text-[10px] tracking-widest uppercase mb-1 ${
-                          homeWon ? "text-orange-500" : "text-zinc-500"
-                        }`}
-                      >
-                        {game.home_team.abbreviation}
-                      </p>
-                      <p
-                        className={`text-sm truncate ${
-                          homeWon ? "text-white font-semibold" : "text-zinc-400"
-                        }`}
-                      >
-                        {game.home_team.full_name}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Status badge */}
-                  <div className="mt-3 pt-3 border-t border-zinc-800 flex items-center justify-between">
-                    <span className="text-[9px] tracking-[0.2em] uppercase text-zinc-600">
-                      {game.status === "Final"
-                        ? "✓ Final"
-                        : game.status || "Scheduled"}
-                    </span>
-                    {hasScore && (
-                      <span className="text-[9px] tracking-[0.2em] uppercase text-zinc-600">
-                        {game.period
-                          ? `${game.period} ${game.period === 1 ? "period" : "periods"}`
-                          : ""}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         )}
 
         {/* Footer */}
-        <div className="mt-20 pt-6 border-t border-zinc-900">
-          <p className="text-[9px] tracking-widest text-zinc-700 uppercase">
-            Data via BallDontLie API
-          </p>
+        <div style={{ marginTop: 96, paddingTop: 24, borderTop: "1px solid #111111" }}>
+          <p style={{ fontSize: 9, letterSpacing: "0.25em", textTransform: "uppercase", color: "#1e1e1e" }}>BallDontLie API</p>
         </div>
       </div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        a { color: inherit; }
+      `}</style>
     </main>
   );
 }

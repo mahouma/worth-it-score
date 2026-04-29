@@ -1,18 +1,26 @@
 import Link from "next/link";
+import { DM_Mono, Bebas_Neue } from "next/font/google";
+
+const dmMono = DM_Mono({ subsets: ["latin"], weight: ["300", "400", "500"] });
+const bebasNeue = Bebas_Neue({ subsets: ["latin"], weight: "400" });
 
 async function getGame(id) {
-  const res = await fetch(`https://www.balldontlie.io/api/v1/games/${id}`, {
-    next: { revalidate: 60 },
-  });
+  const res = await fetch(
+    `https://api.balldontlie.io/nba/v1/games/${id}`,
+    {
+      headers: { Authorization: process.env.NEXT_PUBLIC_BALLDONTLIE_API_KEY },
+      next: { revalidate: 60 },
+    }
+  );
   if (!res.ok) return null;
   return res.json();
 }
 
 function getPeriodLabel(period) {
   if (!period || period === 0) return null;
-  if (period <= 4) return `${period} ${period === 1 ? "Quarter" : "Quarters"}`;
-  const otNumber = period - 4;
-  return otNumber === 1 ? "Overtime" : `${otNumber}× Overtime`;
+  if (period <= 4) return { label: `${period} ${period === 1 ? "Period" : "Periods"}`, ot: false };
+  const ot = period - 4;
+  return { label: ot === 1 ? "Overtime" : `${ot}× Overtime`, ot: true };
 }
 
 export default async function GamePage({ params }) {
@@ -20,171 +28,166 @@ export default async function GamePage({ params }) {
 
   if (!game) {
     return (
-      <main className="min-h-screen bg-[#0a0a0f] text-white font-mono flex items-center justify-center">
-        <div className="text-center px-6">
-          <p className="text-[10px] tracking-[0.3em] text-orange-500 uppercase mb-4">Error</p>
-          <p className="text-zinc-400 text-sm mb-6">Game not found.</p>
-          <Link href="/" className="text-[10px] tracking-widest uppercase text-zinc-500 hover:text-white transition-colors">
-            ← Back
-          </Link>
+      <main style={{ minHeight: "100vh", background: "#080808", color: "#f0ede8", display: "flex", alignItems: "center", justifyContent: "center" }}
+        className={dmMono.className}>
+        <div style={{ textAlign: "center", padding: "0 24px" }}>
+          <p style={{ fontSize: 9, letterSpacing: "0.3em", textTransform: "uppercase", color: "#e85a1a", marginBottom: 16 }}>Not Found</p>
+          <p style={{ fontSize: 12, color: "#5a5a5a", marginBottom: 32 }}>Game not found.</p>
+          <Link href="/" style={{ fontSize: 9, letterSpacing: "0.25em", textTransform: "uppercase", color: "#5a5a5a", textDecoration: "none" }}>← Back</Link>
         </div>
       </main>
     );
   }
 
-  const { home_team, visitor_team, home_team_score, visitor_team_score, period, status, date } = game;
+  const { home_team: home, visitor_team: visitor, home_team_score: hs, visitor_team_score: vs, period, status, date } = game;
 
-  const hasScore = home_team_score > 0 || visitor_team_score > 0;
-  const homeWon = hasScore && home_team_score > visitor_team_score;
-  const visitorWon = hasScore && visitor_team_score > home_team_score;
-  const periodLabel = getPeriodLabel(period);
-  const wentToOT = period > 4;
+  const hasScore = hs > 0 || vs > 0;
+  const homeWon = hasScore && hs > vs;
+  const visitorWon = hasScore && vs > hs;
+  const periodInfo = getPeriodLabel(period);
 
   const formattedDate = date
-    ? new Date(date + "T12:00:00").toLocaleDateString("en-US", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
+    ? new Date(date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
     : null;
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f] text-white font-mono">
-      {/* Grain overlay */}
-      <div
-        className="pointer-events-none fixed inset-0 z-0 opacity-[0.03]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-          backgroundRepeat: "repeat",
-          backgroundSize: "128px 128px",
+    <main className={dmMono.className} style={{ minHeight: "100vh", background: "#080808", color: "#f0ede8" }}>
+
+      {/* Scanline */}
+      <div style={{
+        pointerEvents: "none", position: "fixed", inset: 0, zIndex: 0,
+        backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 4px)",
+      }} />
+
+      <div style={{ position: "relative", zIndex: 1, maxWidth: 640, margin: "0 auto", padding: "72px 24px 96px" }}>
+
+        {/* Back */}
+        <Link href="/" style={{
+          display: "inline-flex", alignItems: "center", gap: 8,
+          fontSize: 9, letterSpacing: "0.3em", textTransform: "uppercase",
+          color: "#5a5a5a", textDecoration: "none", marginBottom: 64,
+          transition: "color 0.15s",
         }}
-      />
-
-      <div className="relative z-10 mx-auto max-w-2xl px-6 py-16">
-
-        {/* Back link */}
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-[10px] tracking-[0.25em] uppercase text-zinc-500 hover:text-white transition-colors duration-200 mb-12"
+          onMouseEnter={e => e.currentTarget.style.color = "#f0ede8"}
+          onMouseLeave={e => e.currentTarget.style.color = "#5a5a5a"}
         >
           ← Back to games
         </Link>
 
-        {/* Top label */}
-        <div className="mb-10">
-          <p className="text-[10px] tracking-[0.3em] text-orange-500 uppercase mb-2">
+        {/* Date label */}
+        <div style={{ marginBottom: 48 }}>
+          <p style={{ fontSize: 9, letterSpacing: "0.3em", textTransform: "uppercase", color: "#e85a1a", marginBottom: 8 }}>
             NBA · Game Detail
           </p>
           {formattedDate && (
-            <p className="text-zinc-500 text-sm">{formattedDate}</p>
+            <p style={{ fontSize: 12, color: "#5a5a5a" }}>{formattedDate}</p>
           )}
         </div>
 
-        {/* Score block */}
-        <div className="border border-zinc-800 bg-zinc-900/60 px-6 py-10 mb-6">
+        {/* Main score card */}
+        <div style={{ background: "#111111", border: "1px solid #1e1e1e", padding: "40px 32px", marginBottom: 2 }}>
 
-          {/* Teams + Big Score */}
-          <div className="flex items-center gap-6">
+          {/* Teams row */}
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 24, marginBottom: 40 }}>
 
             {/* Visitor */}
-            <div className="flex-1 min-w-0">
-              <p className={`text-[10px] tracking-[0.25em] uppercase mb-2 ${visitorWon ? "text-orange-500" : "text-zinc-500"}`}>
-                Away
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 9, letterSpacing: "0.3em", textTransform: "uppercase", color: "#2a2a2a", marginBottom: 6 }}>Away</p>
+              <p style={{ fontSize: 9, letterSpacing: "0.25em", textTransform: "uppercase", color: visitorWon ? "#e85a1a" : "#2a2a2a", marginBottom: 8 }}>
+                {visitor.abbreviation}
               </p>
-              <p className={`text-xs tracking-widest uppercase mb-1 ${visitorWon ? "text-zinc-300" : "text-zinc-500"}`}>
-                {visitor_team.abbreviation}
+              <p style={{ fontSize: 14, color: visitorWon ? "#f0ede8" : "#5a5a5a", fontWeight: visitorWon ? 500 : 300, lineHeight: 1.3 }}>
+                {visitor.full_name}
               </p>
-              <p className={`text-base leading-tight mb-4 ${visitorWon ? "text-white font-semibold" : "text-zinc-400"}`}>
-                {visitor_team.full_name}
-              </p>
-              {hasScore && (
-                <p className={`text-6xl font-black tabular-nums tracking-tight ${visitorWon ? "text-orange-400" : "text-zinc-400"}`}>
-                  {visitor_team_score}
-                </p>
-              )}
             </div>
 
-            {/* Divider */}
-            <div className="flex-shrink-0 flex flex-col items-center gap-2">
+            {/* Score */}
+            <div style={{ flexShrink: 0, textAlign: "center", paddingTop: 16 }}>
               {hasScore ? (
-                <span className="text-zinc-700 text-2xl font-thin">—</span>
+                <>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 12, justifyContent: "center" }}>
+                    <span
+                      className={bebasNeue.className}
+                      style={{ fontSize: 80, lineHeight: 1, color: visitorWon ? "#f0ede8" : "#2a2a2a" }}
+                    >
+                      {vs}
+                    </span>
+                    <span style={{ fontSize: 20, color: "#1e1e1e", fontWeight: 300 }}>–</span>
+                    <span
+                      className={bebasNeue.className}
+                      style={{ fontSize: 80, lineHeight: 1, color: homeWon ? "#f0ede8" : "#2a2a2a" }}
+                    >
+                      {hs}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 8, letterSpacing: "0.25em", textTransform: "uppercase", color: "#2a2a2a", marginTop: 4 }}>Final</p>
+                </>
               ) : (
-                <span className="text-[10px] tracking-[0.2em] text-zinc-600 uppercase">vs</span>
+                <span style={{ fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "#2a2a2a" }}>vs</span>
               )}
             </div>
 
             {/* Home */}
-            <div className="flex-1 min-w-0 text-right">
-              <p className={`text-[10px] tracking-[0.25em] uppercase mb-2 ${homeWon ? "text-orange-500" : "text-zinc-500"}`}>
-                Home
+            <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
+              <p style={{ fontSize: 9, letterSpacing: "0.3em", textTransform: "uppercase", color: "#2a2a2a", marginBottom: 6 }}>Home</p>
+              <p style={{ fontSize: 9, letterSpacing: "0.25em", textTransform: "uppercase", color: homeWon ? "#e85a1a" : "#2a2a2a", marginBottom: 8 }}>
+                {home.abbreviation}
               </p>
-              <p className={`text-xs tracking-widest uppercase mb-1 ${homeWon ? "text-zinc-300" : "text-zinc-500"}`}>
-                {home_team.abbreviation}
+              <p style={{ fontSize: 14, color: homeWon ? "#f0ede8" : "#5a5a5a", fontWeight: homeWon ? 500 : 300, lineHeight: 1.3 }}>
+                {home.full_name}
               </p>
-              <p className={`text-base leading-tight mb-4 ${homeWon ? "text-white font-semibold" : "text-zinc-400"}`}>
-                {home_team.full_name}
-              </p>
-              {hasScore && (
-                <p className={`text-6xl font-black tabular-nums tracking-tight ${homeWon ? "text-orange-400" : "text-zinc-400"}`}>
-                  {home_team_score}
-                </p>
-              )}
             </div>
           </div>
 
-          {/* Meta row */}
-          <div className="mt-8 pt-6 border-t border-zinc-800 flex flex-wrap items-center gap-6">
+          {/* Meta */}
+          <div style={{ borderTop: "1px solid #161616", paddingTop: 24, display: "flex", gap: 40, flexWrap: "wrap" }}>
             <div>
-              <p className="text-[9px] tracking-[0.2em] uppercase text-zinc-600 mb-1">Status</p>
-              <p className="text-xs text-zinc-300">{status || "—"}</p>
+              <p style={{ fontSize: 8, letterSpacing: "0.25em", textTransform: "uppercase", color: "#2a2a2a", marginBottom: 6 }}>Status</p>
+              <p style={{ fontSize: 12, color: "#5a5a5a" }}>{status || "—"}</p>
             </div>
 
-            {periodLabel && (
+            {periodInfo && (
               <div>
-                <p className="text-[9px] tracking-[0.2em] uppercase text-zinc-600 mb-1">Duration</p>
-                <p className={`text-xs ${wentToOT ? "text-orange-400" : "text-zinc-300"}`}>
-                  {periodLabel}
-                  {wentToOT && (
-                    <span className="ml-2 text-[9px] tracking-widest uppercase text-orange-500/70">OT</span>
-                  )}
+                <p style={{ fontSize: 8, letterSpacing: "0.25em", textTransform: "uppercase", color: "#2a2a2a", marginBottom: 6 }}>Duration</p>
+                <p style={{ fontSize: 12, color: periodInfo.ot ? "#e85a1a" : "#5a5a5a" }}>
+                  {periodInfo.label}
                 </p>
               </div>
             )}
 
             {hasScore && (
               <div>
-                <p className="text-[9px] tracking-[0.2em] uppercase text-zinc-600 mb-1">Winner</p>
-                <p className="text-xs text-zinc-300">
-                  {homeWon ? home_team.full_name : visitorWon ? visitor_team.full_name : "Tie"}
+                <p style={{ fontSize: 8, letterSpacing: "0.25em", textTransform: "uppercase", color: "#2a2a2a", marginBottom: 6 }}>Winner</p>
+                <p style={{ fontSize: 12, color: "#5a5a5a" }}>
+                  {homeWon ? home.full_name : visitorWon ? visitor.full_name : "Tie"}
                 </p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Conference / Division info */}
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { label: "Away", team: visitor_team },
-            { label: "Home", team: home_team },
-          ].map(({ label, team }) => (
-            <div key={team.id} className="border border-zinc-800 bg-zinc-900/40 px-4 py-4">
-              <p className="text-[9px] tracking-[0.2em] uppercase text-zinc-600 mb-3">{label}</p>
-              <p className="text-xs text-white font-semibold mb-2">{team.full_name}</p>
-              <p className="text-[10px] text-zinc-500">{team.conference} Conference</p>
-              <p className="text-[10px] text-zinc-600">{team.division} Division</p>
+        {/* Team info cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, marginBottom: 2 }}>
+          {[{ label: "Away", team: visitor }, { label: "Home", team: home }].map(({ label, team }) => (
+            <div key={team.id} style={{ background: "#111111", border: "1px solid #1e1e1e", padding: "20px 24px" }}>
+              <p style={{ fontSize: 8, letterSpacing: "0.25em", textTransform: "uppercase", color: "#2a2a2a", marginBottom: 12 }}>{label}</p>
+              <p style={{ fontSize: 13, color: "#f0ede8", fontWeight: 500, marginBottom: 8 }}>{team.full_name}</p>
+              <p style={{ fontSize: 10, color: "#5a5a5a", marginBottom: 2 }}>{team.conference} Conf.</p>
+              <p style={{ fontSize: 10, color: "#2a2a2a" }}>{team.division} Div.</p>
             </div>
           ))}
         </div>
 
         {/* Footer */}
-        <div className="mt-20 pt-6 border-t border-zinc-900">
-          <p className="text-[9px] tracking-widest text-zinc-700 uppercase">
-            Data via BallDontLie API
-          </p>
+        <div style={{ marginTop: 96, paddingTop: 24, borderTop: "1px solid #111111" }}>
+          <p style={{ fontSize: 9, letterSpacing: "0.25em", textTransform: "uppercase", color: "#1e1e1e" }}>BallDontLie API</p>
         </div>
       </div>
+
+      <style>{`
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        a { color: inherit; }
+      `}</style>
     </main>
   );
 }

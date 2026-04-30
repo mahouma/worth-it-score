@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DM_Mono, Bebas_Neue } from "next/font/google";
+import { computeWorthItScore, getVerdict } from "@/app/lib/worthItScore";
 
 const dmMono = DM_Mono({ subsets: ["latin"], weight: ["300", "400", "500"] });
 const bebasNeue = Bebas_Neue({ subsets: ["latin"], weight: "400" });

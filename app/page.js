@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { DM_Mono, Bebas_Neue } from "next/font/google";
+import { computeWorthItScore, getVerdict } from "@/app/lib/worthItScore";
 
 const dmMono = DM_Mono({ subsets: ["latin"], weight: ["300", "400", "500"] });
 const bebasNeue = Bebas_Neue({ subsets: ["latin"], weight: "400" });
@@ -140,6 +141,8 @@ export default function Home() {
                 const hasScore = h > 0 || v > 0;
                 const homeWon = hasScore && h > v;
                 const visitorWon = hasScore && v > h;
+                const worthIt = computeWorthItScore(game);
+                const verdict = getVerdict(worthIt);
 
                 return (
                   <Link key={game.id} href={`/games/${game.id}`} style={{ textDecoration: "none" }}>
@@ -148,6 +151,7 @@ export default function Home() {
                       onMouseEnter={e => e.currentTarget.style.borderColor = "#2e2e2e"}
                       onMouseLeave={e => e.currentTarget.style.borderColor = "#1e1e1e"}
                     >
+                      {/* Teams + Score row */}
                       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
 
                         {/* Visitor */}
@@ -187,13 +191,21 @@ export default function Home() {
                         </div>
                       </div>
 
-                      {/* Bottom row */}
-                      <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #161616", display: "flex", justifyContent: "space-between" }}>
+                      {/* Bottom row — status + verdict + details */}
+                      <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #161616", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <span style={{ fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: "#2e2e2e" }}>
                           {game.status === "Final" ? "✓ Final" : game.status || "Scheduled"}
                         </span>
-                        <span style={{ fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", color: "#2e2e2e" }}>Details →</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          {worthIt !== null && (
+                            <span style={{ fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: verdict.color, fontWeight: 500 }}>
+                              {verdict.label} · {worthIt}
+                            </span>
+                          )}
+                          <span style={{ fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", color: "#2e2e2e" }}>Details →</span>
+                        </div>
                       </div>
+
                     </div>
                   </Link>
                 );

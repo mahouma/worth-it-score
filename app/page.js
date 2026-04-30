@@ -1,4 +1,3 @@
-cat > ~/worth-it-score/app/page.js << 'ENDOFFILE'
 "use client";
 
 import { useState } from "react";

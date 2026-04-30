@@ -14,7 +14,7 @@ async function getGame(id) {
     }
   );
   if (!res.ok) return null;
-  return res.json();
+  const json = await res.json(); return json.data ?? json;
 }
 
 function getPeriodLabel(period) {

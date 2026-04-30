@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { DM_Mono, Bebas_Neue } from "next/font/google";
-import { computeWorthItScore, getVerdict } from "@/app/lib/worthItScore";
+import { computeWorthItScore, getScoreStyle } from "@/app/lib/worthItScore";
 
 const dmMono = DM_Mono({ subsets: ["latin"], weight: ["300", "400", "500"] });
 const bebasNeue = Bebas_Neue({ subsets: ["latin"], weight: "400" });
@@ -29,8 +29,7 @@ export default async function GamePage({ params }) {
 
   if (!game) {
     return (
-      <main style={{ minHeight: "100vh", background: "#080808", color: "#f0ede8", display: "flex", alignItems: "center", justifyContent: "center" }}
-        className={dmMono.className}>
+      <main className={dmMono.className} style={{ minHeight: "100vh", background: "#080808", color: "#f0ede8", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ textAlign: "center", padding: "0 24px" }}>
           <p style={{ fontSize: 9, letterSpacing: "0.3em", textTransform: "uppercase", color: "#e85a1a", marginBottom: 16 }}>Not Found</p>
           <p style={{ fontSize: 12, color: "#5a5a5a", marginBottom: 32 }}>Game not found.</p>
@@ -40,15 +39,23 @@ export default async function GamePage({ params }) {
     );
   }
 
-  const { home_team: home, visitor_team: visitor, home_team_score: hs, visitor_team_score: vs, period, status, date } = game;
+  const {
+    home_team: home, visitor_team: visitor,
+    home_team_score: hs, visitor_team_score: vs,
+    period, status, date,
+  } = game;
 
   const hasScore = hs > 0 || vs > 0;
   const homeWon = hasScore && hs > vs;
   const visitorWon = hasScore && vs > hs;
   const periodInfo = getPeriodLabel(period);
+  const worthIt = computeWorthItScore(game);
+  const { color: scoreColor, caption } = getScoreStyle(worthIt);
 
   const formattedDate = date
-    ? new Date(date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
+    ? new Date(date + "T12:00:00").toLocaleDateString("en-US", {
+        weekday: "long", year: "numeric", month: "long", day: "numeric",
+      })
     : null;
 
   return (
@@ -63,20 +70,12 @@ export default async function GamePage({ params }) {
       <div style={{ position: "relative", zIndex: 1, maxWidth: 640, margin: "0 auto", padding: "72px 24px 96px" }}>
 
         {/* Back */}
-        <Link href="/" style={{
-          display: "inline-flex", alignItems: "center", gap: 8,
-          fontSize: 9, letterSpacing: "0.3em", textTransform: "uppercase",
-          color: "#5a5a5a", textDecoration: "none", marginBottom: 64,
-          transition: "color 0.15s",
-        }}
-          onMouseEnter={e => e.currentTarget.style.color = "#f0ede8"}
-          onMouseLeave={e => e.currentTarget.style.color = "#5a5a5a"}
-        >
+        <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 9, letterSpacing: "0.3em", textTransform: "uppercase", color: "#5a5a5a", textDecoration: "none", marginBottom: 64 }}>
           ← Back to games
         </Link>
 
-        {/* Date label */}
-        <div style={{ marginBottom: 48 }}>
+        {/* Date */}
+        <div style={{ marginBottom: 40 }}>
           <p style={{ fontSize: 9, letterSpacing: "0.3em", textTransform: "uppercase", color: "#e85a1a", marginBottom: 8 }}>
             NBA · Game Detail
           </p>
@@ -85,10 +84,52 @@ export default async function GamePage({ params }) {
           )}
         </div>
 
-        {/* Main score card */}
-        <div style={{ background: "#111111", border: "1px solid #1e1e1e", padding: "40px 32px", marginBottom: 2 }}>
+        {/* Worth-It Score — hero block */}
+        {worthIt !== null && (
+          <div style={{
+            background: "#111111", border: "1px solid #1e1e1e",
+            padding: "32px 32px 28px", marginBottom: 2,
+            display: "flex", alignItems: "center", gap: 28,
+          }}>
+            {/* Big number */}
+            <span
+              className={bebasNeue.className}
+              style={{
+                fontSize: 120,
+                lineHeight: 1,
+                color: scoreColor,
+                letterSpacing: "-0.01em",
+                flexShrink: 0,
+              }}
+            >
+              {worthIt}
+            </span>
 
-          {/* Teams row */}
+            {/* Caption + breakdown */}
+            <div>
+              <p style={{ fontSize: 9, letterSpacing: "0.25em", textTransform: "uppercase", color: "#2e2e2e", marginBottom: 6 }}>
+                Worth-It Score
+              </p>
+              <p style={{
+                fontSize: 28,
+                fontWeight: 500,
+                color: scoreColor,
+                lineHeight: 1.1,
+                marginBottom: 12,
+              }}>
+                {caption}
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <ScoreLine label="Closeness" value={Math.abs(hs - vs) <= 5 ? "Tight" : Math.abs(hs - vs) <= 10 ? "Competitive" : Math.abs(hs - vs) <= 20 ? "One-sided" : "Blowout"} color={scoreColor} />
+                <ScoreLine label="Overtime" value={period > 4 ? `Yes — ${period - 4} OT` : "No"} color={scoreColor} />
+                <ScoreLine label="Total scoring" value={`${hs + vs} pts`} color={scoreColor} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Score card */}
+        <div style={{ background: "#111111", border: "1px solid #1e1e1e", padding: "40px 32px", marginBottom: 2 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 24, marginBottom: 40 }}>
 
             {/* Visitor */}
@@ -100,32 +141,16 @@ export default async function GamePage({ params }) {
               <p style={{ fontSize: 14, color: visitorWon ? "#f0ede8" : "#5a5a5a", fontWeight: visitorWon ? 500 : 300, lineHeight: 1.3 }}>
                 {visitor.full_name}
               </p>
+              {hasScore && (
+                <p className={bebasNeue.className} style={{ fontSize: 80, lineHeight: 1, color: visitorWon ? "#f0ede8" : "#2a2a2a", marginTop: 16 }}>
+                  {vs}
+                </p>
+              )}
             </div>
 
-            {/* Score */}
-            <div style={{ flexShrink: 0, textAlign: "center", paddingTop: 16 }}>
-              {hasScore ? (
-                <>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 12, justifyContent: "center" }}>
-                    <span
-                      className={bebasNeue.className}
-                      style={{ fontSize: 80, lineHeight: 1, color: visitorWon ? "#f0ede8" : "#2a2a2a" }}
-                    >
-                      {vs}
-                    </span>
-                    <span style={{ fontSize: 20, color: "#1e1e1e", fontWeight: 300 }}>–</span>
-                    <span
-                      className={bebasNeue.className}
-                      style={{ fontSize: 80, lineHeight: 1, color: homeWon ? "#f0ede8" : "#2a2a2a" }}
-                    >
-                      {hs}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: 8, letterSpacing: "0.25em", textTransform: "uppercase", color: "#2a2a2a", marginTop: 4 }}>Final</p>
-                </>
-              ) : (
-                <span style={{ fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "#2a2a2a" }}>vs</span>
-              )}
+            {/* Divider */}
+            <div style={{ flexShrink: 0, paddingTop: 56, textAlign: "center" }}>
+              <span style={{ fontSize: 20, color: "#1e1e1e", fontWeight: 300 }}>–</span>
             </div>
 
             {/* Home */}
@@ -137,6 +162,11 @@ export default async function GamePage({ params }) {
               <p style={{ fontSize: 14, color: homeWon ? "#f0ede8" : "#5a5a5a", fontWeight: homeWon ? 500 : 300, lineHeight: 1.3 }}>
                 {home.full_name}
               </p>
+              {hasScore && (
+                <p className={bebasNeue.className} style={{ fontSize: 80, lineHeight: 1, color: homeWon ? "#f0ede8" : "#2a2a2a", marginTop: 16 }}>
+                  {hs}
+                </p>
+              )}
             </div>
           </div>
 
@@ -146,16 +176,12 @@ export default async function GamePage({ params }) {
               <p style={{ fontSize: 8, letterSpacing: "0.25em", textTransform: "uppercase", color: "#2a2a2a", marginBottom: 6 }}>Status</p>
               <p style={{ fontSize: 12, color: "#5a5a5a" }}>{status || "—"}</p>
             </div>
-
             {periodInfo && (
               <div>
                 <p style={{ fontSize: 8, letterSpacing: "0.25em", textTransform: "uppercase", color: "#2a2a2a", marginBottom: 6 }}>Duration</p>
-                <p style={{ fontSize: 12, color: periodInfo.ot ? "#e85a1a" : "#5a5a5a" }}>
-                  {periodInfo.label}
-                </p>
+                <p style={{ fontSize: 12, color: periodInfo.ot ? "#e85a1a" : "#5a5a5a" }}>{periodInfo.label}</p>
               </div>
             )}
-
             {hasScore && (
               <div>
                 <p style={{ fontSize: 8, letterSpacing: "0.25em", textTransform: "uppercase", color: "#2a2a2a", marginBottom: 6 }}>Winner</p>
@@ -167,8 +193,8 @@ export default async function GamePage({ params }) {
           </div>
         </div>
 
-        {/* Team info cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, marginBottom: 2 }}>
+        {/* Team info */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
           {[{ label: "Away", team: visitor }, { label: "Home", team: home }].map(({ label, team }) => (
             <div key={team.id} style={{ background: "#111111", border: "1px solid #1e1e1e", padding: "20px 24px" }}>
               <p style={{ fontSize: 8, letterSpacing: "0.25em", textTransform: "uppercase", color: "#2a2a2a", marginBottom: 12 }}>{label}</p>
@@ -190,5 +216,16 @@ export default async function GamePage({ params }) {
         a { color: inherit; }
       `}</style>
     </main>
+  );
+}
+
+function ScoreLine({ label, value, color }) {
+  return (
+    <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+      <span style={{ fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", color: "#2e2e2e", minWidth: 90 }}>
+        {label}
+      </span>
+      <span style={{ fontSize: 10, color: "#5a5a5a" }}>{value}</span>
+    </div>
   );
 }

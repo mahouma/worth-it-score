@@ -43,14 +43,6 @@ export async function POST(request) {
     return Response.json({ verdict });
   } catch (error) {
     console.error("Verdict API error:", error);
-    return Response.json(
-      {
-        error: "Failed to generate verdict",
-        detail: error?.message ?? String(error),
-        status: error?.status,
-        type: error?.error?.type,
-      },
-      { status: 500 }
-    );
+    return Response.json({ error: "Failed to generate verdict" }, { status: 500 });
   }
 }

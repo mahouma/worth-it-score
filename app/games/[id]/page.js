@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { DM_Mono, Bebas_Neue } from "next/font/google";
 import { computeWorthItScore, getScoreStyle } from "@/app/lib/worthItScore";
+import VerdictBlock from "./VerdictBlock";
 
 const dmMono = DM_Mono({ subsets: ["latin"], weight: ["300", "400", "500"] });
 const bebasNeue = Bebas_Neue({ subsets: ["latin"], weight: "400" });
@@ -14,7 +15,8 @@ async function getGame(id) {
     }
   );
   if (!res.ok) return null;
-  const json = await res.json(); return json.data ?? json;
+  const json = await res.json();
+  return json.data ?? json;
 }
 
 function getPeriodLabel(period) {
@@ -36,7 +38,8 @@ function ScoreLine({ label, value }) {
 }
 
 export default async function GamePage({ params }) {
-  const game = await getGame(params.id);
+  const { id } = await params;
+  const game = await getGame(id);
 
   if (!game) {
     return (
@@ -105,6 +108,10 @@ export default async function GamePage({ params }) {
               </div>
             </div>
           </div>
+        )}
+
+        {worthIt !== null && (
+          <VerdictBlock game={game} score={worthIt} />
         )}
 
         <div style={{ background: "#111111", border: "1px solid #1e1e1e", padding: "40px 32px", marginBottom: 2 }}>
